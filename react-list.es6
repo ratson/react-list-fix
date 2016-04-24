@@ -197,6 +197,10 @@ export default class extends Component {
   }
 
   updateFrame(cb) {
+    setTimeout(() => this.doUpdateFrame(cb), 0);
+  }
+
+  doUpdateFrame(cb) {
     this.updateScrollParent();
     if (typeof cb != 'function') cb = NOOP;
     switch (this.props.type) {

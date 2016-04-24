@@ -283,6 +283,15 @@
     }, {
       key: 'updateFrame',
       value: function updateFrame(cb) {
+        var _this = this;
+
+        setTimeout(function () {
+          return _this.doUpdateFrame(cb);
+        }, 0);
+      }
+    }, {
+      key: 'doUpdateFrame',
+      value: function doUpdateFrame(cb) {
         this.updateScrollParent();
         if (typeof cb != 'function') cb = NOOP;
         switch (this.props.type) {
@@ -528,7 +537,7 @@
     }, {
       key: 'renderItems',
       value: function renderItems() {
-        var _this = this;
+        var _this2 = this;
 
         var _props7 = this.props;
         var itemRenderer = _props7.itemRenderer;
@@ -541,7 +550,7 @@
         for (var i = 0; i < size; ++i) {
           items.push(itemRenderer(from + i, i));
         }return itemsRenderer(items, function (c) {
-          return _this.items = c;
+          return _this2.items = c;
         });
       }
     }, {
