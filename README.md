@@ -5,11 +5,7 @@ A versatile infinite scroll [React] component.
 ## Install
 
 ```bash
-bower install react-list
-
-# or
-
-npm install react-list
+npm install react-list-fix
 ```
 
 ReactList depends on React.

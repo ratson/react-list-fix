@@ -1,22 +1,18 @@
 {
-  "name": "react-list",
-  "version": "0.7.18",
-  "author": "Casey Foster <c@sey.me>",
+  "name": "react-list-fix",
+  "version": "0.0.1",
   "license": "MIT",
   "main": "react-list.js",
   "scripts": {
     "prepublish": "cogs"
   },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/orgsync/react-list"
-  },
+  "repository": "ratson/react-list",
   "peerDependencies": {
     "react": "0.14 || >= 15.0.0-rc.1 < 16",
     "react-dom": "0.14 || >= 15.0.0-rc.1 < 16"
   },
   "devDependencies": {
-    "cogs": "1.0.7",
+    "cogs": "1.0.8",
     "cogs-transformer-babel": "1.0.12",
     "cogs-transformer-replace": "1.0.1"
   }
