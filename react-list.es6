@@ -28,28 +28,28 @@ export default class extends Component {
   static propTypes = {
     axis: PropTypes.oneOf(['x', 'y']),
     initialIndex: PropTypes.number,
-    itemSizeGetter: PropTypes.func,
     itemRenderer: PropTypes.func,
+    itemSizeEstimator: PropTypes.func,
+    itemSizeGetter: PropTypes.func,
     itemsRenderer: PropTypes.func,
     length: PropTypes.number,
     pageSize: PropTypes.number,
     scrollParentGetter: PropTypes.func,
     threshold: PropTypes.number,
     type: PropTypes.oneOf(['simple', 'variable', 'uniform']),
+    useStaticSize: PropTypes.bool,
     useTranslate3d: PropTypes.bool
   };
 
   static defaultProps = {
     axis: 'y',
-    initialIndex: null,
-    itemSizeGetter: null,
     itemRenderer: (index, key) => <div key={key}>{index}</div>,
     itemsRenderer: (items, ref) => <div ref={ref}>{items}</div>,
     length: 0,
     pageSize: 10,
-    scrollParentGetter: null,
     threshold: 100,
     type: 'simple',
+    useStaticSize: false,
     useTranslate3d: false
   };
 
@@ -167,6 +167,12 @@ export default class extends Component {
   }
 
   getItemSizeAndItemsPerRow() {
+    const {axis, useStaticSize} = this.props;
+    let {itemSize, itemsPerRow} = this.state;
+    if (useStaticSize && itemSize && itemsPerRow) {
+      return {itemSize, itemsPerRow};
+    }
+
     const itemEls = findDOMNode(this.items).children;
     if (!itemEls.length) return {};
 
@@ -176,8 +182,6 @@ export default class extends Component {
     // thousandths of a pixel) different size for the same element between
     // renders. This can cause an infinite render loop, so only change the
     // itemSize when it is significantly different.
-    let {itemSize} = this.state;
-    const {axis} = this.props;
     const firstElSize = firstEl[OFFSET_SIZE_KEYS[axis]];
     const delta = Math.abs(firstElSize - itemSize);
     if (isNaN(delta) || delta >= 1) itemSize = firstElSize;
@@ -186,7 +190,7 @@ export default class extends Component {
 
     const startKey = OFFSET_START_KEYS[axis];
     const firstStart = firstEl[startKey];
-    let itemsPerRow = 1;
+    itemsPerRow = 1;
     for (
       let item = itemEls[itemsPerRow];
       item && item[startKey] === firstStart;
@@ -327,7 +331,7 @@ export default class extends Component {
 
   getSizeOf(index) {
     const {cache, items} = this;
-    const {axis, itemSizeGetter, type} = this.props;
+    const {axis, itemSizeGetter, itemSizeEstimator, type} = this.props;
     const {from, itemSize, size} = this.state;
 
     // Try the static itemSize.
@@ -344,6 +348,9 @@ export default class extends Component {
       const itemEl = findDOMNode(items).children[index - from];
       if (itemEl) return itemEl[OFFSET_SIZE_KEYS[axis]];
     }
+
+    // Try the itemSizeEstimator.
+    if (itemSizeEstimator) return itemSizeEstimator(index, cache);
   }
 
   constrain(from, size, itemsPerRow, {length, pageSize, type}) {

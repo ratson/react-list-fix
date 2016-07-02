@@ -4,7 +4,7 @@
   "license": "MIT",
   "main": "react-list.js",
   "scripts": {
-    "prepublish": "babel react-list.es6 examples/index.es6 -d ."
+    "prepublish": "babel react-list.es6 -d ."
   },
   "repository": "ratson/react-list-fix",
   "peerDependencies": {

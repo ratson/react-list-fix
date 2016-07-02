@@ -66,12 +66,6 @@ The axis that this list scrolls on.
 
 An index to scroll to after mounting.
 
-##### itemSizeGetter(index)
-
-A function that receives an item index and returns the size (height for y-axis
-lists and width for x-axis lists) of that item at that index. This prop is only
-used when the prop `type` is set to `variable`.
-
 ##### itemRenderer(index, key)
 
 A function that receives an index and a key and returns the content to be
@@ -83,6 +77,21 @@ A function that receives the rendered items and a ref. By default this element
 is just a `<div>`. Generally it only needs to be overridden for use in a
 `<table>` or other special case. **NOTE: You must set ref={ref} on the component
 that contains the `items` so the correct item sizing calculations can be made.**
+
+##### itemSizeEstimator(index, cache)
+
+A function that receives an item index and the cached known item sizes and
+returns an estimated size (height for y-axis lists and width for x-axis lists)
+of that item at that index. This prop is only used when the prop `type` is set
+to `variable` and `itemSizeGetter` is not defined. Use this property when you
+can't know the exact size of an item before rendering it, but want it to take up
+space in the list regardless.
+
+##### itemSizeGetter(index)
+
+A function that receives an item index and returns the size (height for y-axis
+lists and width for x-axis lists) of that item at that index. This prop is only
+used when the prop `type` is set to `variable`.
 
 ##### length (defaults to `0`)
 
@@ -123,6 +132,14 @@ entire list can be calculated ahead of time and only enough items to fill the
 viewport ever need to be drawn. The size of the first item will be used to
 infer the size of every other item. Multiple items per row are also supported
 with this type.
+
+##### useStaticSize (defaults to `false`)
+
+Set to `true` if the item size will never change (as a result of responsive
+layout changing or otherwise). This prop is only used when the prop `type` is
+set to `uniform`. This is an opt-in optimization that will cause the very first
+element's size to be used for all elements for the duration of the component's
+life.
 
 ##### useTranslate3d (defaults to `false`)
 
