@@ -1,3 +1,11 @@
+# This is a fork
+
+Due to https://github.com/orgsync/react-list/pull/98 was not accepted, and I need a fix for it, so I forked it.
+
+The main difference from the upstream is this version uses `setTimeout()` for `updateFrame()` to avoid the scrolling issue on Android WebView.
+
+I would recommend trying out the original `react-list` first, switch to this fork unless you see the problem. The fix by no means is a proper fix, but it works for me.
+
 # ReactList
 
 A versatile infinite scroll [React] component.
@@ -5,7 +13,7 @@ A versatile infinite scroll [React] component.
 ## Install
 
 ```bash
-npm install react-list-fix
+npm install react-list-fix --save
 ```
 
 ReactList depends on React.
