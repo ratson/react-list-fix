@@ -1,3 +1,4 @@
+import module from 'module';
 import React, {Component, PropTypes} from 'react';
 import ReactDOM from 'react-dom';
 
@@ -22,7 +23,9 @@ const SIZE_KEYS = {x: 'width', y: 'height'};
 
 const NOOP = () => {};
 
-export default class extends Component {
+const PASSIVE = {passive: true};
+
+module.exports = class ReactList extends Component {
   static displayName = 'ReactList';
 
   static propTypes = {
@@ -223,8 +226,8 @@ export default class extends Component {
       prev.removeEventListener('scroll', this.updateFrame);
       prev.removeEventListener('mousewheel', NOOP);
     }
-    this.scrollParent.addEventListener('scroll', this.updateFrame);
-    this.scrollParent.addEventListener('mousewheel', NOOP);
+    this.scrollParent.addEventListener('scroll', this.updateFrame, PASSIVE);
+    this.scrollParent.addEventListener('mousewheel', NOOP, PASSIVE);
   }
 
   updateSimpleFrame(cb) {
