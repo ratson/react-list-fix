@@ -71,6 +71,7 @@ class ReactList extends Component {
       this.constrain(initialIndex, pageSize, itemsPerRow, this.props);
     this.state = {from, size, itemsPerRow};
     this.cache = {};
+    this.timeoutId = null;
   }
 
   componentWillReceiveProps(next) {
@@ -215,7 +216,13 @@ class ReactList extends Component {
   }
 
   updateFrame(cb) {
-    setTimeout(() => this.doUpdateFrame(cb), 0);
+    if (this.timeoutId !== null) {
+      window.clearTimeout(this.timeoutId);
+    }
+    this.timeoutId = window.setTimeout(() => {
+      this.timeoutId = null;
+      return this.doUpdateFrame(cb);
+    }, 0);
   }
 
   doUpdateFrame(cb) {
