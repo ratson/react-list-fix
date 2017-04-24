@@ -1,4 +1,5 @@
-import React, {Component, PropTypes} from 'react';
+import PropTypes from 'prop-types';
+import React, {Component} from 'react';
 import ReactDOM from 'react-dom';
 
 const {findDOMNode} = ReactDOM;
@@ -33,14 +34,13 @@ const PASSIVE = (() => {
 })() ? {passive: true} : false;
 
 const UNSTABLE_MESSAGE = 'ReactList failed to reach a stable state.';
+const MAX_SYNC_UPDATES = 100;
 
 const isEqualSubset = (a, b) => {
   for (let key in b) if (a[key] !== b[key]) return false;
 
   return true;
 };
-
-const isEqual = (a, b) => isEqualSubset(a, b) && isEqualSubset(b, a);
 
 class ReactList extends Component {
   static displayName = 'ReactList';
@@ -75,14 +75,14 @@ class ReactList extends Component {
 
   constructor(props) {
     super(props);
-    const {initialIndex, pageSize} = this.props;
+    const {initialIndex} = props;
     const itemsPerRow = 1;
-    const {from, size} =
-      this.constrain(initialIndex, pageSize, itemsPerRow, this.props);
+    const {from, size} = this.constrain(initialIndex, 0, itemsPerRow, props);
     this.state = {from, size, itemsPerRow};
     this.cache = {};
     this.prevPrevState = {};
     this.unstable = false;
+    this.updateCounter = 0;
   }
 
   componentWillReceiveProps(next) {
@@ -96,32 +96,25 @@ class ReactList extends Component {
     this.updateFrame(this.scrollTo.bind(this, this.props.initialIndex));
   }
 
-  componentDidUpdate(prevProps, prevState) {
+  componentDidUpdate() {
 
     // If the list has reached an unstable state, prevent an infinite loop.
     if (this.unstable) return;
 
-    // Update calculations if props have changed between renders.
-    const propsEqual = isEqual(this.props, prevProps);
-    if (!propsEqual) {
-      this.prevPrevState = {};
-      return this.updateFrame();
-    }
-
-    // Check for ping-ponging between the same two states.
-    const stateEqual = isEqual(this.state, prevState);
-    const pingPong = !stateEqual && isEqual(this.state, this.prevPrevState);
-
-    // Ping-ponging between states means this list is unstable, log an error.
-    if (pingPong) {
+    if (++this.updateCounter > MAX_SYNC_UPDATES) {
       this.unstable = true;
       console.error(UNSTABLE_MESSAGE);
       return;
     }
 
-    // Update calculations if state has changed between renders.
-    this.prevPrevState = prevState;
-    if (!stateEqual) this.updateFrame();
+    if (!this.updateCounterTimeoutId) {
+      this.updateCounterTimeoutId = setTimeout(() => {
+        this.updateCounter = 0;
+        delete this.updateCounterTimeoutId;
+      }, 0);
+    }
+
+    this.updateFrame();
   }
 
   maybeSetState(b, cb) {
@@ -399,8 +392,8 @@ class ReactList extends Component {
     if (itemSizeEstimator) return itemSizeEstimator(index, cache);
   }
 
-  constrain(from, size, itemsPerRow, {length, pageSize, type}) {
-    size = Math.max(size, pageSize);
+  constrain(from, size, itemsPerRow, {length, type}) {
+    if (type === 'uniform') size = Math.max(size, 1);
     let mod = size % itemsPerRow;
     if (mod) size += itemsPerRow - mod;
     if (size > length) size = length;
