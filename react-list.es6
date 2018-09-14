@@ -42,6 +42,26 @@ const isEqualSubset = (a, b) => {
   return true;
 };
 
+const defaultScrollParentGetter = (component) => {
+  const {axis} = component.props;
+  let el = component.getEl();
+  const overflowKey = OVERFLOW_KEYS[axis];
+  while (el = el.parentElement) {
+    switch (window.getComputedStyle(el)[overflowKey]) {
+    case 'auto': case 'scroll': case 'overlay': return el;
+    }
+  }
+  return window;
+};
+
+const defaultScrollParentViewportSizeGetter = (component) => {
+  const {axis} = component.props;
+  const {scrollParent} = component;
+  return scrollParent === window ?
+    window[INNER_SIZE_KEYS[axis]] :
+    scrollParent[CLIENT_SIZE_KEYS[axis]];
+};
+
 class ReactList extends Component {
   static displayName = 'ReactList';
 
@@ -53,8 +73,10 @@ class ReactList extends Component {
     itemSizeGetter: PropTypes.func,
     itemsRenderer: PropTypes.func,
     length: PropTypes.number,
+    minSize: PropTypes.number,
     pageSize: PropTypes.number,
     scrollParentGetter: PropTypes.func,
+    scrollParentViewportSizeGetter: PropTypes.func,
     threshold: PropTypes.number,
     type: PropTypes.oneOf(['simple', 'variable', 'uniform']),
     useStaticSize: PropTypes.bool,
@@ -66,7 +88,10 @@ class ReactList extends Component {
     itemRenderer: (index, key) => <div key={key}>{index}</div>,
     itemsRenderer: (items, ref) => <div ref={ref}>{items}</div>,
     length: 0,
+    minSize: 1,
     pageSize: 10,
+    scrollParentGetter: defaultScrollParentGetter,
+    scrollParentViewportSizeGetter: defaultScrollParentViewportSizeGetter,
     threshold: 100,
     type: 'simple',
     useStaticSize: false,
@@ -80,19 +105,22 @@ class ReactList extends Component {
     const {from, size} = this.constrain(initialIndex, 0, itemsPerRow, props);
     this.state = {from, size, itemsPerRow};
     this.cache = {};
+    this.cachedScrollPosition = null;
     this.prevPrevState = {};
     this.unstable = false;
     this.updateCounter = 0;
   }
 
   componentWillReceiveProps(next) {
+    // Viewport scroll is no longer useful if axis changes
+    if (this.props.axis !== next.axis) this.clearSizeCache();
     let {from, size, itemsPerRow} = this.state;
     this.maybeSetState(this.constrain(from, size, itemsPerRow, next), NOOP);
   }
 
   componentDidMount() {
-    this.updateFrame = this.updateFrame.bind(this);
-    window.addEventListener('resize', this.updateFrame);
+    this.updateFrameAndClearCache = this.updateFrameAndClearCache.bind(this);
+    window.addEventListener('resize', this.updateFrameAndClearCache);
     this.updateFrame(this.scrollTo.bind(this, this.props.initialIndex));
   }
 
@@ -124,8 +152,8 @@ class ReactList extends Component {
   }
 
   componentWillUnmount() {
-    window.removeEventListener('resize', this.updateFrame);
-    this.scrollParent.removeEventListener('scroll', this.updateFrame, PASSIVE);
+    window.removeEventListener('resize', this.updateFrameAndClearCache);
+    this.scrollParent.removeEventListener('scroll', this.updateFrameAndClearCache, PASSIVE);
     this.scrollParent.removeEventListener('mousewheel', NOOP, PASSIVE);
   }
 
@@ -137,20 +165,13 @@ class ReactList extends Component {
     return offset;
   }
 
-  getScrollParent() {
-    const {axis, scrollParentGetter} = this.props;
-    if (scrollParentGetter) return scrollParentGetter();
-    let el = findDOMNode(this);
-    const overflowKey = OVERFLOW_KEYS[axis];
-    while (el = el.parentElement) {
-      switch (window.getComputedStyle(el)[overflowKey]) {
-      case 'auto': case 'scroll': case 'overlay': return el;
-      }
-    }
-    return window;
+  getEl() {
+    return this.el || this.items;
   }
 
-  getScroll() {
+  getScrollPosition() {
+    // Cache scroll position as this causes a forced synchronous layout.
+    if (typeof this.cachedScrollPosition === 'number') return this.cachedScrollPosition;
     const {scrollParent} = this;
     const {axis} = this.props;
     const scrollKey = SCROLL_START_KEYS[axis];
@@ -160,28 +181,21 @@ class ReactList extends Component {
       // whichever has a value.
       document.body[scrollKey] || document.documentElement[scrollKey] :
       scrollParent[scrollKey];
-    const max = this.getScrollSize() - this.getViewportSize();
+    const max = this.getScrollSize() - this.props.scrollParentViewportSizeGetter(this);
     const scroll = Math.max(0, Math.min(actual, max));
-    const el = findDOMNode(this);
-    return this.getOffset(scrollParent) + scroll - this.getOffset(el);
+    const el = this.getEl();
+    this.cachedScrollPosition = this.getOffset(scrollParent) + scroll - this.getOffset(el);
+    return this.cachedScrollPosition;
   }
 
   setScroll(offset) {
     const {scrollParent} = this;
     const {axis} = this.props;
-    offset += this.getOffset(findDOMNode(this));
+    offset += this.getOffset(this.getEl());
     if (scrollParent === window) return window.scrollTo(0, offset);
 
     offset -= this.getOffset(this.scrollParent);
     scrollParent[SCROLL_START_KEYS[axis]] = offset;
-  }
-
-  getViewportSize() {
-    const {scrollParent} = this;
-    const {axis} = this.props;
-    return scrollParent === window ?
-      window[INNER_SIZE_KEYS[axis]] :
-      scrollParent[CLIENT_SIZE_KEYS[axis]];
   }
 
   getScrollSize() {
@@ -199,9 +213,9 @@ class ReactList extends Component {
   }
 
   getStartAndEnd(threshold = this.props.threshold) {
-    const scroll = this.getScroll();
+    const scroll = this.getScrollPosition();
     const start = Math.max(0, scroll - threshold);
-    let end = scroll + this.getViewportSize() + threshold;
+    let end = scroll + this.props.scrollParentViewportSizeGetter(this) + threshold;
     if (this.hasDeterminateSize()) {
       end = Math.min(end, this.getSpaceBefore(this.props.length));
     }
@@ -215,7 +229,7 @@ class ReactList extends Component {
       return {itemSize, itemsPerRow};
     }
 
-    const itemEls = findDOMNode(this.items).children;
+    const itemEls = this.items.children;
     if (!itemEls.length) return {};
 
     const firstEl = itemEls[0];
@@ -242,6 +256,16 @@ class ReactList extends Component {
     return {itemSize, itemsPerRow};
   }
 
+  clearSizeCache() {
+    this.cachedScrollPosition = null;
+  }
+
+  // Called by 'scroll' and 'resize' events, clears scroll position cache.
+  updateFrameAndClearCache(cb) {
+    this.clearSizeCache();
+    return this.updateFrame(cb);
+  }
+
   updateFrame(cb) {
     this.updateScrollParent();
     if (typeof cb != 'function') cb = NOOP;
@@ -254,19 +278,23 @@ class ReactList extends Component {
 
   updateScrollParent() {
     const prev = this.scrollParent;
-    this.scrollParent = this.getScrollParent();
+    this.scrollParent = this.props.scrollParentGetter(this);
     if (prev === this.scrollParent) return;
     if (prev) {
-      prev.removeEventListener('scroll', this.updateFrame);
+      prev.removeEventListener('scroll', this.updateFrameAndClearCache);
       prev.removeEventListener('mousewheel', NOOP);
     }
-    this.scrollParent.addEventListener('scroll', this.updateFrame, PASSIVE);
+    // If we have a new parent, cached parent dimensions are no longer useful.
+    this.clearSizeCache();
+    this.scrollParent.addEventListener('scroll', this.updateFrameAndClearCache, PASSIVE);
+    // You have to attach mousewheel listener to the scrollable element.
+    // Just an empty listener. After that onscroll events will be fired synchronously.
     this.scrollParent.addEventListener('mousewheel', NOOP, PASSIVE);
   }
 
   updateSimpleFrame(cb) {
     const {end} = this.getStartAndEnd();
-    const itemEls = findDOMNode(this.items).children;
+    const itemEls = this.items.children;
     let elEnd = 0;
 
     if (itemEls.length) {
@@ -295,7 +323,7 @@ class ReactList extends Component {
     const maxFrom = length - 1;
 
     while (from < maxFrom) {
-      const itemSize = this.getSizeOf(from);
+      const itemSize = this.getSizeOfItem(from);
       if (itemSize == null || space + itemSize > start) break;
       space += itemSize;
       ++from;
@@ -304,7 +332,7 @@ class ReactList extends Component {
     const maxSize = length - from;
 
     while (size < maxSize && space < end) {
-      const itemSize = this.getSizeOf(from + size);
+      const itemSize = this.getSizeOfItem(from + size);
       if (itemSize == null) {
         size = Math.min(size + pageSize, maxSize);
         break;
@@ -350,7 +378,7 @@ class ReactList extends Component {
     let space = cache[from] || 0;
     for (let i = from; i < index; ++i) {
       cache[i] = space;
-      const itemSize = this.getSizeOf(i);
+      const itemSize = this.getSizeOfItem(i);
       if (itemSize == null) break;
       space += itemSize;
     }
@@ -361,14 +389,14 @@ class ReactList extends Component {
   cacheSizes() {
     const {cache} = this;
     const {from} = this.state;
-    const itemEls = findDOMNode(this.items).children;
+    const itemEls = this.items.children;
     const sizeKey = OFFSET_SIZE_KEYS[this.props.axis];
     for (let i = 0, l = itemEls.length; i < l; ++i) {
       cache[from + i] = itemEls[i][sizeKey];
     }
   }
 
-  getSizeOf(index) {
+  getSizeOfItem(index) {
     const {cache, items} = this;
     const {axis, itemSizeGetter, itemSizeEstimator, type} = this.props;
     const {from, itemSize, size} = this.state;
@@ -384,7 +412,7 @@ class ReactList extends Component {
 
     // Try the DOM.
     if (type === 'simple' && index >= from && index < from + size && items) {
-      const itemEl = findDOMNode(items).children[index - from];
+      const itemEl = items.children[index - from];
       if (itemEl) return itemEl[OFFSET_SIZE_KEYS[axis]];
     }
 
@@ -392,8 +420,8 @@ class ReactList extends Component {
     if (itemSizeEstimator) return itemSizeEstimator(index, cache);
   }
 
-  constrain(from, size, itemsPerRow, {length, type}) {
-    if (type === 'uniform') size = Math.max(size, 1);
+  constrain(from, size, itemsPerRow, {length, minSize, type}) {
+    size = Math.max(size, minSize);
     let mod = size % itemsPerRow;
     if (mod) size += itemsPerRow - mod;
     if (size > length) size = length;
@@ -414,9 +442,9 @@ class ReactList extends Component {
   }
 
   scrollAround(index) {
-    const current = this.getScroll();
+    const current = this.getScrollPosition();
     const bottom = this.getSpaceBefore(index);
-    const top = bottom - this.getViewportSize() + this.getSizeOf(index);
+    const top = bottom - this.props.scrollParentViewportSizeGetter(this) + this.getSizeOfItem(index);
     const min = Math.min(top, bottom);
     const max = Math.max(top, bottom);
     if (current <= min) return this.setScroll(min);
@@ -430,7 +458,7 @@ class ReactList extends Component {
     let first, last;
     for (let i = from; i < from + size; ++i) {
       const itemStart = this.getSpaceBefore(i, cache);
-      const itemEnd = itemStart + this.getSizeOf(i);
+      const itemEnd = itemStart + this.getSizeOfItem(i);
       if (first == null && itemEnd > start) first = i;
       if (first != null && itemStart < end) last = i;
     }
@@ -472,7 +500,11 @@ class ReactList extends Component {
       WebkitTransform: transform,
       transform
     };
-    return <div {...{style}}><div style={listStyle}>{items}</div></div>;
+    return (
+      <div style={style} ref={c => this.el = c}>
+        <div style={listStyle}>{items}</div>
+      </div>
+    );
   }
 }
 

@@ -11,8 +11,7 @@
     "prop-types": "^15.5.8"
   },
   "peerDependencies": {
-    "react": "^15.5.4",
-    "react-dom": "^15.5.4"
+    "react": "0.14 || 15 || 16"
   },
   "devDependencies": {
     "babel-cli": "^6.24.1",
@@ -21,8 +20,8 @@
     "babel-preset-react": "^6.24.1",
     "babel-preset-react-optimize": "^1.0.1",
     "babel-preset-stage-0": "^6.24.1",
-    "react": "^15.5.4",
-    "react-dom": "^15.5.4",
+    "react": "^16",
+    "react-dom": "^16",
     "eslint-plugin-react": "^6.10.3",
     "eslint": "^3.19.0"
   }
