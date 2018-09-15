@@ -109,6 +109,7 @@ class ReactList extends Component {
     this.prevPrevState = {};
     this.unstable = false;
     this.updateCounter = 0;
+    this.timeoutId = null;
   }
 
   componentWillReceiveProps(next) {
@@ -267,6 +268,16 @@ class ReactList extends Component {
   }
 
   updateFrame(cb) {
+    if (this.timeoutId !== null) {
+      window.clearTimeout(this.timeoutId);
+    }
+    this.timeoutId = window.setTimeout(() => {
+      this.timeoutId = null;
+      return this.UNSAFE_updateFrame(cb);
+    }, 0);
+  }
+
+  UNSAFE_updateFrame(cb) {
     this.updateScrollParent();
     if (typeof cb != 'function') cb = NOOP;
     switch (this.props.type) {
