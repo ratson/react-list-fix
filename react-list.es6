@@ -268,7 +268,7 @@ class ReactList extends Component {
   }
 
   updateFrame(cb) {
-    if (this.timeoutId !== null) {
+    if (!this.unstable && this.timeoutId !== null) {
       window.clearTimeout(this.timeoutId);
     }
     this.timeoutId = window.setTimeout(() => {
