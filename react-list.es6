@@ -1,8 +1,5 @@
 import PropTypes from 'prop-types';
 import React, {Component} from 'react';
-import ReactDOM from 'react-dom';
-
-const {findDOMNode} = ReactDOM;
 
 const CLIENT_SIZE_KEYS = {x: 'clientWidth', y: 'clientHeight'};
 const CLIENT_START_KEYS = {x: 'clientTop', y: 'clientLeft'};
@@ -273,11 +270,11 @@ class ReactList extends Component {
     }
     this.timeoutId = window.setTimeout(() => {
       this.timeoutId = null;
-      return this.UNSAFE_updateFrame(cb);
+      return this.updateFrameUnsafe(cb);
     }, 0);
   }
 
-  UNSAFE_updateFrame(cb) {
+  updateFrameUnsafe(cb) {
     this.updateScrollParent();
     if (typeof cb != 'function') cb = NOOP;
     switch (this.props.type) {
