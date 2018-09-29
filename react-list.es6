@@ -435,7 +435,7 @@ class ReactList extends Component {
     if (size > length) size = length;
     from =
       type === 'simple' || !from ? 0 :
-      Math.max(Math.min(from, length - size), 0);
+        Math.max(Math.min(from, length - size), 0);
 
     if (mod = from % itemsPerRow) {
       from -= mod;
@@ -501,8 +501,8 @@ class ReactList extends Component {
     const y = axis === 'y' ? offset : 0;
     const transform =
       useTranslate3d ?
-      `translate3d(${x}px, ${y}px, 0)` :
-      `translate(${x}px, ${y}px)`;
+        `translate3d(${x}px, ${y}px, 0)` :
+        `translate(${x}px, ${y}px)`;
     const listStyle = {
       msTransform: transform,
       WebkitTransform: transform,
