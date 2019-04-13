@@ -9,15 +9,15 @@
   },
   "repository": "ratson/react-list-fix",
   "dependencies": {
-    "prop-types": "^15.6.2"
+    "prop-types": "^15.7.2"
   },
   "peerDependencies": {
     "react": "0.14 || 15 || 16"
   },
   "devDependencies": {
-    "@babel/cli": "^7.2.3",
-    "@babel/core": "^7.2.2",
-    "@babel/plugin-proposal-class-properties": "7.3.0",
+    "@babel/cli": "^7.4.3",
+    "@babel/core": "^7.4.3",
+    "@babel/plugin-proposal-class-properties": "7.4.0",
     "@babel/plugin-proposal-do-expressions": "7.2.0",
     "@babel/plugin-proposal-export-default-from": "7.2.0",
     "@babel/plugin-proposal-export-namespace-from": "7.2.0",
@@ -25,14 +25,14 @@
     "@babel/plugin-proposal-function-sent": "7.2.0",
     "@babel/plugin-proposal-json-strings": "7.2.0",
     "@babel/plugin-proposal-logical-assignment-operators": "7.2.0",
-    "@babel/plugin-proposal-nullish-coalescing-operator": "7.2.0",
+    "@babel/plugin-proposal-nullish-coalescing-operator": "7.4.3",
     "@babel/plugin-proposal-numeric-separator": "7.2.0",
     "@babel/plugin-proposal-optional-chaining": "7.2.0",
     "@babel/plugin-proposal-throw-expressions": "7.2.0",
-    "@babel/preset-env": "7.3.1",
+    "@babel/preset-env": "7.4.3",
     "@babel/preset-react": "7.0.0",
     "babel-eslint": "^10.0.1",
-    "eslint": "^5.12.1",
+    "eslint": "^5.16.0",
     "eslint-plugin-react": "^7.12.4",
     "react": "^16",
     "react-dom": "^16"
